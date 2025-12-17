@@ -23,7 +23,8 @@
 
 개발 소스 외에, 품질 검증을 위해 새롭게 구축한 QA 전용 디렉토리 구조입니다.
 
-```bash
+```
+bash
 secondhand-auction/
 ├── run_tests.py         # 통합 테스트 실행기 (API + UI 테스트 일괄 수행 및 결과 리포팅)
 ├── tests/               # 테스트 자동화 코드 저장소
@@ -32,7 +33,7 @@ secondhand-auction/
 ├── docs/
 │   └── qa/              # QA 문서 산출물 (Test Cases, Bug Reports)
 └── requirements.txt     # 테스트 환경 구성을 위한 의존성 패키지 목록
-
+```
 
 # Pa-Bi 경매 플랫폼 명세서
 

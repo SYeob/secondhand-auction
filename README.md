@@ -4,6 +4,8 @@
 
 **Pa-Bi**는 한국어 기반 실시간 경매 플랫폼입니다. 사용자는 상품을 등록하고, 입찰하며, 낙찰받을 수 있습니다.
 
+**URL:** https://syeob.lovable.app/
+
 ### 1.1 기술 스택
 - **Frontend**: React 18, TypeScript, Vite
 - **UI Framework**: Tailwind CSS, shadcn/ui

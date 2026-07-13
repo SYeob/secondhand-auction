@@ -1,0 +1,1006 @@
+{
+  "info": {
+    "name": "PABI Auction API",
+    "description": "PABI 경매 앱 API 테스트 컬렉션",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://cysqofttgfckhhcifzsb.supabase.co",
+      "type": "string"
+    },
+    {
+      "key": "anon_key",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5c3FvZnR0Z2Zja2hoY2lmenNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2OTA5ODQsImV4cCI6MjA3NzI2Njk4NH0.auAgNOsMjhUFNs9SjgcQXMPSKcRSEKvkovgYiAP3WDA",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "회원가입",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('access_token', jsonData.access_token);",
+                  "}",
+                  "if (jsonData.user && jsonData.user.id) {",
+                  "    pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "}",
+                  "",
+                  "pm.test('회원가입 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('사용자 정보 반환', function () {",
+                  "    pm.expect(jsonData.user).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"data\": {\n    \"username\": \"testuser\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/v1/signup",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "v1", "signup"]
+            }
+          }
+        },
+        {
+          "name": "로그인",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access_token) {",
+                  "    pm.collectionVariables.set('access_token', jsonData.access_token);",
+                  "}",
+                  "if (jsonData.user && jsonData.user.id) {",
+                  "    pm.collectionVariables.set('user_id', jsonData.user.id);",
+                  "}",
+                  "",
+                  "pm.test('로그인 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('액세스 토큰 반환', function () {",
+                  "    pm.expect(jsonData.access_token).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/v1/token?grant_type=password",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "v1", "token"],
+              "query": [
+                {
+                  "key": "grant_type",
+                  "value": "password"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "현재 사용자 정보",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('사용자 정보 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('사용자 ID 존재', function () {",
+                  "    pm.expect(jsonData.id).to.exist;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/v1/user",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "v1", "user"]
+            }
+          }
+        },
+        {
+          "name": "로그아웃",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('로그아웃 성공', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set('access_token', '');"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/v1/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "v1", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "전체 상품 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('상품 목록 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('배열 형태 반환', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{anon_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/products?select=*&order=created_at.desc",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "products"],
+              "query": [
+                {
+                  "key": "select",
+                  "value": "*"
+                },
+                {
+                  "key": "order",
+                  "value": "created_at.desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "카테고리별 상품 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('카테고리별 상품 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{anon_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/products?select=*&category=eq.전자기기",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "products"],
+              "query": [
+                {
+                  "key": "select",
+                  "value": "*"
+                },
+                {
+                  "key": "category",
+                  "value": "eq.전자기기"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "상품 상세 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('상품 상세 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{anon_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/products?select=*&id=eq.{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "products"],
+              "query": [
+                {
+                  "key": "select",
+                  "value": "*"
+                },
+                {
+                  "key": "id",
+                  "value": "eq.{{product_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "상품 등록 (인증 필요)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('상품 등록 성공', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.length > 0) {",
+                  "    pm.collectionVariables.set('product_id', jsonData[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"테스트 상품\",\n  \"description\": \"테스트 상품 설명입니다.\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"location\": \"서울\",\n  \"category\": \"전자기기\",\n  \"image_url\": \"https://via.placeholder.com/300\",\n  \"seller_phone\": \"010-1234-5678\",\n  \"end_time\": \"2025-12-31T23:59:59Z\",\n  \"seller_id\": \"{{user_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/v1/products",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "products"]
+            }
+          }
+        },
+        {
+          "name": "상품 수정 (판매자만)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('상품 수정 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"수정된 상품명\",\n  \"description\": \"수정된 설명입니다.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/v1/products?id=eq.{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "products"],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "eq.{{product_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "상품 삭제 (판매자만)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('상품 삭제 성공', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/products?id=eq.{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "products"],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "eq.{{product_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bids",
+      "item": [
+        {
+          "name": "특정 상품 입찰 내역 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('입찰 내역 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('배열 형태 반환', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{anon_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/bids?select=*&product_id=eq.{{product_id}}&order=bid_amount.desc",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "bids"],
+              "query": [
+                {
+                  "key": "select",
+                  "value": "*"
+                },
+                {
+                  "key": "product_id",
+                  "value": "eq.{{product_id}}"
+                },
+                {
+                  "key": "order",
+                  "value": "bid_amount.desc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "입찰하기 (인증 필요)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "if (statusCode === 201) {",
+                  "    pm.test('입찰 성공', function () {",
+                  "        pm.response.to.have.status(201);",
+                  "    });",
+                  "} else {",
+                  "    pm.test('입찰 실패 (현재가보다 낮거나 경매 종료)', function () {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.message).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{product_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"bid_amount\": 15000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/v1/bids",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "bids"]
+            }
+          }
+        },
+        {
+          "name": "내 입찰 내역 조회",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('내 입찰 내역 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/bids?select=*,products(*)&user_id=eq.{{user_id}}&order=created_at.desc",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "bids"],
+              "query": [
+                {
+                  "key": "select",
+                  "value": "*,products(*)"
+                },
+                {
+                  "key": "user_id",
+                  "value": "eq.{{user_id}}"
+                },
+                {
+                  "key": "order",
+                  "value": "created_at.desc"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Likes",
+      "item": [
+        {
+          "name": "좋아요 추가 (인증 필요)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('좋아요 추가 성공', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{product_id}}\",\n  \"user_id\": \"{{user_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/v1/likes",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "likes"]
+            }
+          }
+        },
+        {
+          "name": "좋아요 삭제 (인증 필요)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('좋아요 삭제 성공', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/likes?product_id=eq.{{product_id}}&user_id=eq.{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "likes"],
+              "query": [
+                {
+                  "key": "product_id",
+                  "value": "eq.{{product_id}}"
+                },
+                {
+                  "key": "user_id",
+                  "value": "eq.{{user_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "내 좋아요 목록",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('내 좋아요 목록 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/likes?select=*,products(*)&user_id=eq.{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "likes"],
+              "query": [
+                {
+                  "key": "select",
+                  "value": "*,products(*)"
+                },
+                {
+                  "key": "user_id",
+                  "value": "eq.{{user_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profiles",
+      "item": [
+        {
+          "name": "프로필 조회 (username만 공개)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('프로필 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{anon_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/profiles?select=id,username",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "profiles"],
+              "query": [
+                {
+                  "key": "select",
+                  "value": "id,username"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "내 프로필 조회 (인증 필요)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('내 프로필 조회 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "pm.test('이메일 정보 포함', function () {",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.expect(jsonData[0].email).to.exist;",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rest/v1/profiles?select=*&id=eq.{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "profiles"],
+              "query": [
+                {
+                  "key": "select",
+                  "value": "*"
+                },
+                {
+                  "key": "id",
+                  "value": "eq.{{user_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "내 프로필 수정 (인증 필요)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('프로필 수정 성공', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"updated_username\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/v1/profiles?id=eq.{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "profiles"],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "eq.{{user_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RPC Functions",
+      "item": [
+        {
+          "name": "판매자 연락처 조회 (낙찰자만)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var statusCode = pm.response.code;",
+                  "",
+                  "if (statusCode === 200) {",
+                  "    pm.test('판매자 연락처 조회 성공', function () {",
+                  "        pm.response.to.have.status(200);",
+                  "    });",
+                  "} else {",
+                  "    pm.test('접근 불가 (낙찰자 아님 또는 경매 진행중)', function () {",
+                  "        var jsonData = pm.response.json();",
+                  "        pm.expect(jsonData.message).to.exist;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"p_product_id\": \"{{product_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/v1/rpc/get_seller_contact",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "v1", "rpc", "get_seller_contact"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Environment variables
+.env
+.env.*
+
+!.env.example
+
+# Test artifacts
+reports/*
+!reports/.gitkeep
+screenshots/*
+!screenshots/.gitkeep
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

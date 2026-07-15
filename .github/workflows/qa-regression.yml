@@ -1,0 +1,82 @@
+name: QA Regression
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  selenium-pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      BASE_URL: http://127.0.0.1:8080
+      HEADLESS: "true"
+      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+      TEST_SELLER_EMAIL: ${{ secrets.TEST_SELLER_EMAIL }}
+      TEST_SELLER_PASSWORD: ${{ secrets.TEST_SELLER_PASSWORD }}
+      TEST_BIDDER_A_EMAIL: ${{ secrets.TEST_BIDDER_A_EMAIL }}
+      TEST_BIDDER_A_PASSWORD: ${{ secrets.TEST_BIDDER_A_PASSWORD }}
+      TEST_BIDDER_B_EMAIL: ${{ secrets.TEST_BIDDER_B_EMAIL }}
+      TEST_BIDDER_B_PASSWORD: ${{ secrets.TEST_BIDDER_B_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install test dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start Vite server
+        run: |
+          npm run dev -- --host 127.0.0.1 > vite.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080 > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat vite.log
+          exit 1
+
+      - name: Run Selenium and API regression
+        run: pytest -c tests/pytest.ini tests
+
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-test-evidence-${{ github.run_number }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            reports/
+            screenshots/
+            vite.log

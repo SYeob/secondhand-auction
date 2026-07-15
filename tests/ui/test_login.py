@@ -35,6 +35,7 @@ def _get_test_credentials() -> tuple[str, str]:
 
 
 @pytest.mark.ui
+@pytest.mark.p1
 @pytest.mark.regression
 def test_login_succeeds_with_valid_credentials(driver, base_url):
     """유효한 계정으로 로그인하면 홈 화면에 로그인 상태가 표시된다."""
@@ -49,6 +50,7 @@ def test_login_succeeds_with_valid_credentials(driver, base_url):
 
 
 @pytest.mark.ui
+@pytest.mark.p1
 @pytest.mark.regression
 def test_login_fails_with_invalid_password(driver, base_url):
     """등록된 이메일에 잘못된 비밀번호를 입력하면 오류가 표시된다."""
@@ -63,6 +65,7 @@ def test_login_fails_with_invalid_password(driver, base_url):
 
 
 @pytest.mark.ui
+@pytest.mark.p1
 @pytest.mark.regression
 def test_unauthenticated_user_is_redirected_from_my_page(driver, base_url):
     """비로그인 사용자가 마이페이지에 직접 접근하면 로그인 화면으로 이동한다."""

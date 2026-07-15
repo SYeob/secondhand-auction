@@ -1,150 +1,105 @@
 # 자동화 계획
 
-## 1. 자동화 목표
+## 1. 자동화 목표와 선정 기준
 
-반복 실행 가치가 높고 결과가 명확한 핵심 회귀 흐름을 Playwright로 자동화한다.
+반복 실행 가치가 높고 결과가 명확한 P0/P1 흐름을 회귀 안전망으로 만든다. 모든 항목을 UI로 작성하지 않고 검증 책임에 따라 UI와 API를 분리한다.
 
-자동화의 목적은 모든 테스트를 코드로 전환하는 것이 아니라, 핵심 기능 변경 시 빠르게 이상 여부를 판단할 수 있는 회귀 안전망을 구축하는 것이다.
+- UI: 사용자 조작, 안내 문구, 화면 상태, 목록 반영
+- API: 입찰 원자성, 서버 검증, 낙찰 계산, RLS/RPC 권한
+- 수동: 시각 품질, 탐색적 연속 조작, 실제 네트워크·시간 경계
 
----
-
-## 2. 자동화 선정 기준
-
-다음 조건을 만족하는 항목을 우선 자동화한다.
-
-- 반복 실행 빈도가 높다.
-- 결과가 명확하게 Pass/Fail로 구분된다.
-- P0 또는 P1 기능이다.
-- 사용자 핵심 흐름에 포함된다.
-- 테스트 데이터와 실행 환경을 안정적으로 준비할 수 있다.
-
----
-
-## 3. UI 자동화 대상
-
-| 기능 | 자동화 항목 | 우선순위 |
-|---|---|---|
-| 로그인 | 정상 로그인, 보호 화면 접근 차단 | P1 |
-| 상품 등록 | 정상 등록, 종료 시간 검증 | P1 |
-| 상품 조회 | 목록·상세 정보 일치 | P1 |
-| 입찰 | 정상 입찰, 최고가 이하 입찰, 종료 후 입찰 차단 | P0 |
-| 낙찰 | 경매 종료 상태, 유찰, 거래 정보 권한 | P0 |
-| 마이페이지 | 사용자별 내역 조회 | P1 |
-| 좋아요 | 추가 및 해제 | P2 |
-
----
-
-## 4. API 자동화 대상
-
-- 정상·실패 로그인
-- 상품 등록 요청 유효성
-- 정상 입찰
-- 최고가 이하 입찰
-- 중복 입찰 요청
-- 동시 입찰
-- 종료 이후 입찰
-- 최고 입찰자 낙찰 검증
-- 거래 정보 접근 권한
-- 다른 사용자 데이터 접근 차단
-
-동시성, 상태 전환, 권한 검증은 UI보다 API 테스트가 더 빠르고 안정적으로 검증할 수 있으므로 API 자동화를 우선한다.
-
----
-
-## 5. 수동 테스트 유지 대상
-
-- 오류 메시지의 이해도
-- 반응형 UI와 시각적 품질
-- 브라우저 저장소 및 쿠키 속성 점검
-- 탐색적 테스트
-- 실제 시간 경계에서의 비정형 조작
-- 네트워크 지연과 사용자 연속 조작
-- 개인정보 노출 범위 검토
-
----
-
-## 6. 권장 디렉터리 구조
+## 2. 자동화 구조
 
 ```text
 tests/
-├── ui/
-│   ├── login.spec.ts
-│   ├── item.spec.ts
-│   ├── bidding.spec.ts
-│   └── auction-close.spec.ts
 ├── api/
-│   ├── auth-api.spec.ts
-│   ├── bidding-api.spec.ts
-│   └── auction-close-api.spec.ts
+│   ├── test_auth_api.py
+│   ├── test_bidding_api.py
+│   └── test_auction_close_api.py
+├── data/
+│   └── test_data.py
 ├── pages/
-│   ├── login.page.ts
-│   ├── item.page.ts
-│   └── auction.page.ts
-├── fixtures/
-│   └── auth.fixture.ts
-└── test-data/
-    └── auction-data.ts
+│   ├── base_page.py
+│   ├── login_page.py
+│   ├── register_product_page.py
+│   ├── auction_page.py
+│   └── my_page.py
+├── ui/
+│   ├── test_smoke.py
+│   ├── test_login.py
+│   ├── test_product_registration.py
+│   ├── test_bidding.py
+│   ├── test_auction_close.py
+│   ├── test_my_page.py
+│   └── test_likes.py
+├── utils/
+│   ├── config.py
+│   └── supabase_api.py
+└── conftest.py
 ```
 
-초기에는 복잡한 구조를 먼저 적용하지 않고, 테스트가 증가할 때 Page Object와 fixture를 분리한다.
+## 3. 테스트 데이터 전략
 
----
+1. 역할별 계정을 `.env` 또는 Actions Secrets에서 읽는다.
+2. API로 테스트에 필요한 상품·입찰을 빠르게 준비한다.
+3. 고유 상품명으로 병렬 실행 충돌을 방지한다.
+4. `yield` fixture 또는 `finally`에서 생성 상품을 삭제한다.
+5. 상품 삭제 cascade로 관련 입찰·좋아요를 정리한다.
 
-## 7. 테스트 데이터 관리
+필수 역할:
 
-다음 정보는 코드에 직접 작성하지 않는다.
-
-- 테스트 계정 이메일
-- 비밀번호
-- 인증 토큰
-- 외부 서비스 키
-
-로컬에서는 `.env.test`, CI에서는 GitHub Actions Secrets를 사용한다.
-
-예시:
-
-```text
-TEST_SELLER_EMAIL
-TEST_SELLER_PASSWORD
-TEST_BIDDER_A_EMAIL
-TEST_BIDDER_A_PASSWORD
-TEST_BIDDER_B_EMAIL
-TEST_BIDDER_B_PASSWORD
+```dotenv
+TEST_USER_EMAIL=
+TEST_USER_PASSWORD=
+TEST_SELLER_EMAIL=
+TEST_SELLER_PASSWORD=
+TEST_BIDDER_A_EMAIL=
+TEST_BIDDER_A_PASSWORD=
+TEST_BIDDER_B_EMAIL=
+TEST_BIDDER_B_PASSWORD=
 ```
 
-`.env*` 파일은 `.gitignore`에 포함한다.
+## 4. 안정성 기준
 
----
+- `time.sleep`은 경매 종료라는 외부 상태 전환 대기에만 제한적으로 사용한다.
+- 일반 UI 동기화는 WebDriverWait과 expected conditions를 사용한다.
+- Chrome 비밀번호 저장·유출 경고는 테스트 프로필 설정으로 비활성화한다.
+- 각 UI 테스트는 새로운 Chrome 인스턴스를 사용한다.
+- 실패 시 함수 본문 단계에서 스크린샷을 저장한다.
+- 비밀번호와 access token은 출력하지 않는다.
 
-## 8. Playwright 작성 기준
+## 5. 실행 명령
 
-- 테스트 이름에 행동과 기대 결과를 포함한다.
-- role, label, `data-testid` 기반 locator를 우선 사용한다.
-- `waitForTimeout`을 사용하지 않는다.
-- 각 테스트는 독립적으로 실행 가능해야 한다.
-- 다른 테스트가 만든 상태에 의존하지 않는다.
-- 실패 시 screenshot, trace, HTML report를 남긴다.
-- 동일 테스트를 반복 실행해도 결과가 안정적이어야 한다.
+```powershell
+# Vite 서버
+npm run dev
 
----
+# 전체 회귀
+pytest tests
 
-## 9. CI 실행 기준
+# 선택 실행
+pytest tests -m smoke
+pytest tests -m p0
+pytest tests -m ui
+pytest tests -m api
+```
 
-GitHub Actions에서 다음 순서로 실행한다.
+## 6. GitHub Actions
 
-1. 의존성 설치
-2. Playwright 브라우저 설치
-3. 애플리케이션 실행 또는 테스트 서버 연결
-4. Smoke Test 실행
-5. 핵심 회귀 테스트 실행
-6. 실패 시 HTML Report와 trace 업로드
+`.github/workflows/qa-regression.yml`에서 다음을 수행한다.
 
----
+1. Node/Python 환경 구성
+2. 프론트 빌드
+3. Vite 서버 실행과 HTTP 준비 확인
+4. Chrome Headless 전체 회귀
+5. HTML 리포트, 실패 스크린샷, Vite 로그 업로드
 
-## 10. 자동화 완료 기준
+Secrets에는 Supabase 설정과 역할별 계정만 저장한다. Artifact 보존 기간은 14일이다.
 
-- P0 자동화 테스트 100% 통과
-- 로컬과 GitHub Actions 결과 일치
-- 테스트 계정 정보가 저장소에 노출되지 않음
-- 실패 시 원인을 확인할 수 있는 증적 생성
-- 주요 테스트가 독립적으로 실행됨
+## 7. 완료 기준
+
+- 구현된 24개 테스트 전체 수집
+- P0 자동화 Pass 또는 명확한 결함 연결
+- 테스트 데이터 잔존 없음
+- 로컬·CI 동일 테스트 명령 사용
+- 실패 원인을 HTML·스크린샷·로그에서 확인 가능

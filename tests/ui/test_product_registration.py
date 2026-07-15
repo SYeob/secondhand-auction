@@ -22,6 +22,7 @@ def _get_test_credentials() -> tuple[str, str]:
 
 
 @pytest.mark.ui
+@pytest.mark.p1
 @pytest.mark.regression
 def test_authenticated_user_can_register_product(driver, base_url):
     """로그인 사용자가 유효한 경매 상품을 등록하고 삭제할 수 있다."""

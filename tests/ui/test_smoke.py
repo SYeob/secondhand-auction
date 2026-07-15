@@ -8,13 +8,16 @@ from tests.pages.base_page import BasePage
 
 @pytest.mark.smoke
 @pytest.mark.ui
+@pytest.mark.p1
 def test_home_page_is_displayed(driver, base_url):
     """홈 화면이 열리고 핵심 헤더 요소가 표시되는지 확인한다."""
     page = BasePage(driver, base_url)
     page.open("/")
 
     logo = page.wait_until_visible((By.LINK_TEXT, "Pa-Bi"))
-    login_button = page.wait_until_visible((By.XPATH, "//button[.//span[normalize-space()='로그인']]"))
+    login_button = page.wait_until_visible(
+        (By.XPATH, "//button[.//span[normalize-space()='로그인']]")
+    )
     search_input = page.wait_until_visible(
         (By.CSS_SELECTOR, "input[placeholder='검색어를 입력해 주세요']")
     )

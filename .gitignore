@@ -5,6 +5,11 @@ __pycache__/
 .venv/
 venv/
 
+# Node / Vite
+node_modules/
+dist/
+npm-debug.log*
+
 # Environment variables
 .env
 .env.*
@@ -22,4 +27,3 @@ screenshots/*
 .idea/
 .DS_Store
 Thumbs.db
-node_modules

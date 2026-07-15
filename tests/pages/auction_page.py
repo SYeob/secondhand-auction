@@ -23,6 +23,16 @@ class AuctionPage(BasePage):
         By.XPATH,
         "//button[normalize-space()='응찰 확인']",
     )
+    WINNER_CONTACT_TRIGGER = (
+        By.XPATH,
+        "//*[@aria-haspopup='dialog']"
+        "[.//*[contains(normalize-space(), '축하드립니다. 낙찰되었습니다')]]",
+    )
+
+    WINNER_CONTACT_DIALOG = (
+        By.XPATH,
+        "//*[@role='dialog']",
+    )
 
     def wait_for_product(self, title: str) -> None:
         """지정한 상품의 상세 화면이 표시될 때까지 기다린다."""
@@ -103,21 +113,32 @@ class AuctionPage(BasePage):
         self.wait.until(lambda _driver: not button.is_enabled())
 
     def open_winner_contact(self) -> None:
-        """낙찰 안내 카드를 열어 판매자 연락처 다이얼로그를 표시한다."""
-        winner_message = self.wait_until_clickable(
-            (
-                By.XPATH,
-                "//*[contains(normalize-space(), '축하드립니다. 낙찰되었습니다')]",
-            )
+        """낙찰 안내 카드를 클릭하고 연락처 다이얼로그가 열렸는지 확인한다."""
+        trigger = self.wait_until_clickable(
+            self.WINNER_CONTACT_TRIGGER
         )
-        winner_message.click()
+
+        self.driver.execute_script(
+            "arguments[0].scrollIntoView({block: 'center'});",
+            trigger,
+        )
+        trigger.click()
+
         self.wait_until_visible(
-            (By.XPATH, "//*[normalize-space()='판매자 연락처']")
+            self.WINNER_CONTACT_DIALOG
         )
 
     def wait_for_seller_phone(self, phone: str) -> None:
         """낙찰자 연락처 다이얼로그에 예상 전화번호가 표시되는지 확인한다."""
-        self.wait_until_visible((By.XPATH, f"//*[normalize-space()='{phone}']"))
+        phone_literal = self._xpath_literal(phone)
+
+        self.wait_until_visible(
+            (
+                By.XPATH,
+                "//*[@role='dialog']"
+                f"//*[normalize-space()={phone_literal}]",
+            )
+        )
 
     def wait_for_loser_message(self) -> None:
         """비낙찰자에게 낙찰 실패 안내가 표시되는지 확인한다."""

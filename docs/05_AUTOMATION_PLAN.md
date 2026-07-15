@@ -75,13 +75,13 @@ TEST_BIDDER_B_PASSWORD=
 npm run dev
 
 # 전체 회귀
-pytest tests
+pytest -c tests/pytest.ini tests
 
 # 선택 실행
-pytest tests -m smoke
-pytest tests -m p0
-pytest tests -m ui
-pytest tests -m api
+pytest -c tests/pytest.ini tests -m smoke
+pytest -c tests/pytest.ini tests -m p0
+pytest -c tests/pytest.ini tests -m ui
+pytest -c tests/pytest.ini tests -m api
 ```
 
 ## 6. GitHub Actions

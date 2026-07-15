@@ -1,6 +1,19 @@
 # Pa-Bi Auction QA Automation Portfolio
 
+[![QA Regression](https://github.com/SYeob/secondhand-auction/actions/workflows/qa-regression.yml/badge.svg)](https://github.com/SYeob/secondhand-auction/actions/workflows/qa-regression.yml)
+
 Pa-Bi Auction의 금전·개인정보 위험을 중심으로 UI와 API를 함께 검증하는 QA 자동화 포트폴리오입니다.
+
+## 최종 실행 결과
+
+| 항목    | 결과 |
+| ------- | ---: |
+| 전체    |   24 |
+| Passed  |   23 |
+| XFailed |    1 |
+| Failed  |    0 |
+
+GitHub Actions의 Ubuntu·Chrome Headless 환경에서 전체 회귀 테스트가 성공했습니다. XFailed 1건은 개인정보 접근 통제 결함 `DEF-002`와 연결한 strict xfail입니다.
 
 ## 핵심 구성
 

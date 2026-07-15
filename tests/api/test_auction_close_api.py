@@ -41,7 +41,7 @@ def ended_auction(
         supabase_api.update_product_end_time(
             seller,
             product["id"],
-            datetime.now(timezone.utc) - timedelta(seconds=1),
+            datetime.now(timezone.utc) - timedelta(minutes=5),
         )
 
         yield {

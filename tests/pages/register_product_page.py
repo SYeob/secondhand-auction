@@ -19,6 +19,7 @@ class RegisterProductPage(BasePage):
     DESCRIPTION_INPUT = (By.ID, "description")
     LOCATION_INPUT = (By.ID, "location")
     STARTING_PRICE_INPUT = (By.ID, "startingPrice")
+    IMAGE_URL_INPUT = (By.ID, "imageUrl")
     END_TIME_INPUT = (By.ID, "endTime")
     REGISTER_BUTTON = (
         By.XPATH,
@@ -45,6 +46,7 @@ class RegisterProductPage(BasePage):
         description: str,
         location: str,
         starting_price: int,
+        image_url: str,
         end_time: str,
     ) -> None:
         """필수 상품 정보를 입력하고 등록한다."""
@@ -54,6 +56,7 @@ class RegisterProductPage(BasePage):
         self.wait_until_visible(self.STARTING_PRICE_INPUT).send_keys(
             str(starting_price)
         )
+        self.wait_until_visible(self.IMAGE_URL_INPUT).send_keys(image_url)
         self._set_datetime_local(end_time)
         self.wait_until_clickable(self.REGISTER_BUTTON).click()
 

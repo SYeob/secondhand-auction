@@ -29,6 +29,10 @@ class LoginPage(BasePage):
         By.XPATH,
         "//button[.//span[normalize-space()='로그아웃']]",
     )
+    LOGIN_NAV_BUTTON = (
+        By.XPATH,
+        "//button[.//span[normalize-space()='로그인']]",
+    )
 
     def open_login(self) -> None:
         """로그인 화면을 연다."""
@@ -54,6 +58,21 @@ class LoginPage(BasePage):
     def get_login_error_message(self) -> str:
         """로그인 실패 토스트의 문구를 반환한다."""
         return self.wait_until_visible(self.LOGIN_ERROR_TOAST).text.strip()
+
+    def logout(self) -> None:
+        """현재 계정에서 로그아웃하고 비로그인 홈 화면을 확인한다."""
+        self.wait_until_clickable(self.LOGOUT_BUTTON).click()
+        self.wait.until(lambda driver: urlparse(driver.current_url).path == "/")
+        self.wait_until_visible(self.LOGIN_NAV_BUTTON)
+
+    def reset_auth_session(self) -> None:
+        """테스트 정리를 위해 브라우저의 Supabase 인증 세션을 제거한다."""
+        self.open("/")
+        self.driver.execute_script(
+            "window.localStorage.clear(); window.sessionStorage.clear();"
+        )
+        self.driver.refresh()
+        self.wait_until_visible(self.LOGIN_NAV_BUTTON)
 
     def open_my_page(self) -> None:
         """주소를 통해 마이페이지에 직접 접근한다."""

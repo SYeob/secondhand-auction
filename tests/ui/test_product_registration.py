@@ -44,6 +44,7 @@ def test_authenticated_user_can_register_product(driver, base_url):
             description="Selenium 자동화 테스트용 상품입니다.",
             location="서울시 강남구",
             starting_price=10000,
+            image_url="https://example.com/qa-test-image.jpg",
             end_time=end_time,
         )
         product_page.wait_for_registered_product(unique_title)

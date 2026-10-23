@@ -11,6 +11,7 @@ import RegisterProduct from "./pages/RegisterProduct";
 import MyPage from "./pages/MyPage";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import OAuthConsent from "./pages/OAuthConsent";
 import WinnerNotification from "./components/WinnerNotification";
 
 // 페이지 전환 시 스크롤 최상단 이동
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/register" element={<RegisterProduct />} />
           <Route path="/mypage" element={<MyPage />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

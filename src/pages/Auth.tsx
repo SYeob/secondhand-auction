@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,24 +9,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+// Only allow same-origin relative paths in the `next` redirect.
+const safeNext = (raw: string | null): string => {
+  if (!raw) return "/";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/";
+  return raw;
+};
+
 const Auth = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get("next"));
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
 
   useEffect(() => {
-    // 페이지 최상단으로 스크롤
     window.scrollTo(0, 0);
-
-    // 이미 로그인한 사용자는 메인 페이지로 리다이렉트
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        navigate(next, { replace: true });
       }
     });
-  }, [navigate]);
+  }, [navigate, next]);
+
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +73,7 @@ const Auth = () => {
           data: {
             username,
           },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}${next}`,
         },
       });
 
@@ -78,7 +85,7 @@ const Auth = () => {
         }
       } else {
         toast.success("회원가입이 완료되었습니다!");
-        navigate("/");
+        navigate(next, { replace: true });
       }
     } catch (error) {
       toast.error("회원가입 중 오류가 발생했습니다.");
@@ -119,7 +126,7 @@ const Auth = () => {
         }
       } else {
         toast.success("로그인되었습니다!");
-        navigate("/");
+        navigate(next, { replace: true });
       }
     } catch (error) {
       toast.error("로그인 중 오류가 발생했습니다.");

@@ -87,7 +87,7 @@ const RegisterProduct = () => {
       if (error instanceof z.ZodError) {
         toast({
           title: "입력값 오류",
-          description: error.errors[0].message,
+          description: error.issues[0].message,
           variant: "destructive",
         });
         setIsLoading(false);

@@ -1,0 +1,4516 @@
+{
+  "info": {
+    "name": "Pa-Bi Core Bidding TC",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "핵심 8개 TC / 9개 입력 조건. 00 준비부터 Collection 전체를 Runner로 실행하세요. Variables의 계정 6개 값을 로컬에 입력하세요. 이메일 인증된 서로 다른 테스트 계정 3개가 필요합니다. QA-POSTMAN- 접두사의 상품을 생성·삭제합니다. 토큰·상품 ID는 실행 중 로컬 변수에만 보관합니다. 실제 서버 결과 미실행. Python의 동시 입찰·연락처 권한 테스트 범위와 구분합니다."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://cysqofttgfckhhcifzsb.supabase.co",
+      "type": "string"
+    },
+    {
+      "key": "anon_key",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5c3FvZnR0Z2Zja2hoY2lmenNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2OTA5ODQsImV4cCI6MjA3NzI2Njk4NH0.auAgNOsMjhUFNs9SjgcQXMPSKcRSEKvkovgYiAP3WDA",
+      "type": "string"
+    },
+    {
+      "key": "seller_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "seller_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bidder_a_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bidder_a_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bidder_b_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bidder_b_password",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 준비 - 계정 3개 로그인",
+      "item": [
+        {
+          "name": "판매자 로그인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/auth/v1/token?grant_type=password",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{{qa_login_payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "[\"seller\", \"bidder_a\", \"bidder_b\"].forEach(r => {",
+                  "  pm.variables.unset(\"qa_\" + r + \"_token\");",
+                  "  pm.variables.unset(\"qa_\" + r + \"_id\");",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "if (!pm.variables.get(\"seller_email\") || !pm.variables.get(\"seller_password\")) {",
+                  "  pm.test(\"BLOCKED: 판매자 계정 설정 필요\", function () { throw new Error(\"Set collection Variables before running.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_login_payload\", JSON.stringify({",
+                  "  email: pm.variables.get(\"seller_email\"), password: pm.variables.get(\"seller_password\")",
+                  "}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"판매자 로그인 성공 및 세션 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.access_token).to.be.a(\"string\").and.not.empty;",
+                  "  pm.expect(data.user.id).to.be.a(\"string\").and.not.empty;",
+                  "  pm.expect(data.user.email.toLowerCase()).to.equal(pm.variables.get(\"seller_email\").toLowerCase());",
+                  "  pm.variables.set(\"qa_seller_token\", data.access_token);",
+                  "  pm.variables.set(\"qa_seller_id\", data.user.id);",
+                  "});",
+                  "",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "입찰자 A 로그인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/auth/v1/token?grant_type=password",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{{qa_login_payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"bidder_a_email\") || !pm.variables.get(\"bidder_a_password\")) {",
+                  "  pm.test(\"BLOCKED: 입찰자 A 계정 설정 필요\", function () { throw new Error(\"Set collection Variables before running.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_login_payload\", JSON.stringify({",
+                  "  email: pm.variables.get(\"bidder_a_email\"), password: pm.variables.get(\"bidder_a_password\")",
+                  "}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰자 A 로그인 성공 및 세션 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.access_token).to.be.a(\"string\").and.not.empty;",
+                  "  pm.expect(data.user.id).to.be.a(\"string\").and.not.empty;",
+                  "  pm.expect(data.user.email.toLowerCase()).to.equal(pm.variables.get(\"bidder_a_email\").toLowerCase());",
+                  "  pm.variables.set(\"qa_bidder_a_token\", data.access_token);",
+                  "  pm.variables.set(\"qa_bidder_a_id\", data.user.id);",
+                  "});",
+                  "",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "입찰자 B 로그인",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/auth/v1/token?grant_type=password",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{{qa_login_payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"bidder_b_email\") || !pm.variables.get(\"bidder_b_password\")) {",
+                  "  pm.test(\"BLOCKED: 입찰자 B 계정 설정 필요\", function () { throw new Error(\"Set collection Variables before running.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_login_payload\", JSON.stringify({",
+                  "  email: pm.variables.get(\"bidder_b_email\"), password: pm.variables.get(\"bidder_b_password\")",
+                  "}));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰자 B 로그인 성공 및 세션 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = pm.response.json();",
+                  "  pm.expect(data.access_token).to.be.a(\"string\").and.not.empty;",
+                  "  pm.expect(data.user.id).to.be.a(\"string\").and.not.empty;",
+                  "  pm.expect(data.user.email.toLowerCase()).to.equal(pm.variables.get(\"bidder_b_email\").toLowerCase());",
+                  "  pm.variables.set(\"qa_bidder_b_token\", data.access_token);",
+                  "  pm.variables.set(\"qa_bidder_b_id\", data.user.id);",
+                  "});",
+                  "check(\"판매자와 입찰자 A/B는 서로 다른 계정\", function () {",
+                  "  const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "  pm.expect(ids.every(Boolean)).to.equal(true);",
+                  "  pm.expect(new Set(ids).size).to.equal(3);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": "먼저 실행. 계정은 미리 가입하고 이메일 인증을 완료한 테스트 계정 3개 사용. 토큰은 실행 중 로컬 변수에만 저장."
+    },
+    {
+      "name": "TC-BID-001 정상 입찰",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-BID-001-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 입찰자 A 정상 입찰",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_bidder_a_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_a_id}}\",\n  \"bid_amount\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 성공: 금액·상품·사용자 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].product_id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].user_id).to.equal(pm.variables.get(\"qa_bidder_a_id\"));",
+                  "  pm.expect(data[0].bid_amount).to.equal(15000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(15000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].product_id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].bid_amount).to.equal(15000);",
+                  "  pm.expect(data[0].user_id).to.equal(pm.variables.get(\"qa_bidder_a_id\"));",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-BID-001 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"02 입찰자 A 정상 입찰\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-BID-002-EQUAL 현재가와 같은 금액 거부",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-BID-002-EQUAL-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 검증 대상 입찰 요청",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_bidder_a_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_a_id}}\",\n  \"bid_amount\": 10000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 거부 및 오류 원인 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400]);",
+                  "  const error = pm.response.json();",
+                  "  pm.expect(error).to.be.an(\"object\");",
+                  "  pm.expect(error.code).to.be.oneOf([\"P0001\"]);",
+                  "  pm.expect(error.message).to.match(/higher than current price/i);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(10000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(0);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-BID-002-EQUAL 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"03 검증 대상 입찰 요청\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-BID-002-LOWER 현재가보다 낮은 금액 거부",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-BID-002-LOWER-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 검증 대상 입찰 요청",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_bidder_a_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_a_id}}\",\n  \"bid_amount\": 9000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 거부 및 오류 원인 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400]);",
+                  "  const error = pm.response.json();",
+                  "  pm.expect(error).to.be.an(\"object\");",
+                  "  pm.expect(error.code).to.be.oneOf([\"P0001\"]);",
+                  "  pm.expect(error.message).to.match(/higher than current price/i);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(10000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(0);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-BID-002-LOWER 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"03 검증 대상 입찰 요청\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-BID-003 두 사용자 순차 입찰",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-BID-003-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 입찰자 A 정상 입찰",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_bidder_a_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_a_id}}\",\n  \"bid_amount\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 성공: 금액·상품·사용자 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].product_id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].user_id).to.equal(pm.variables.get(\"qa_bidder_a_id\"));",
+                  "  pm.expect(data[0].bid_amount).to.equal(15000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 입찰자 B 더 높은 금액 입찰",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_bidder_b_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_b_id}}\",\n  \"bid_amount\": 20000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 성공: 금액·상품·사용자 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].product_id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].user_id).to.equal(pm.variables.get(\"qa_bidder_b_id\"));",
+                  "  pm.expect(data[0].bid_amount).to.equal(20000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(20000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(2);",
+                  "  pm.expect(data[0].product_id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].bid_amount).to.equal(20000);",
+                  "  pm.expect(data[0].user_id).to.equal(pm.variables.get(\"qa_bidder_b_id\"));",
+                  "  pm.expect(data[1].product_id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[1].bid_amount).to.equal(15000);",
+                  "  pm.expect(data[1].user_id).to.equal(pm.variables.get(\"qa_bidder_a_id\"));",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-BID-003 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"02 입찰자 A 정상 입찰\", \"03 입찰자 B 더 높은 금액 입찰\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-CLOSE-001 종료 후 입찰 차단",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-CLOSE-001-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 종료 상태 준비",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&select=id,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"end_time\": \"{{qa_past_time}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_past_time\", new Date(Date.now() - 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"경매 종료 시각 변경 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(Date.parse(data[0].end_time)).to.be.below(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 검증 대상 입찰 요청",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_bidder_a_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_a_id}}\",\n  \"bid_amount\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 거부 및 오류 원인 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400]);",
+                  "  const error = pm.response.json();",
+                  "  pm.expect(error).to.be.an(\"object\");",
+                  "  pm.expect(error.code).to.be.oneOf([\"P0001\"]);",
+                  "  pm.expect(error.message).to.match(/auction has ended|ended auction/i);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(10000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(0);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-CLOSE-001 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"02 종료 상태 준비\", \"03 검증 대상 입찰 요청\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-BID-004 익명 입찰 차단",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-BID-004-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 검증 대상 입찰 요청",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_a_id}}\",\n  \"bid_amount\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 거부 및 오류 원인 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                  "  const error = pm.response.json();",
+                  "  pm.expect(error).to.be.an(\"object\");",
+                  "  pm.expect(error.code).to.be.oneOf([\"42501\"]);",
+                  "  pm.expect(error.message).to.match(/row.level security|permission/i);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(10000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(0);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-BID-004 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"03 검증 대상 입찰 요청\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-BID-005 잘못된 토큰 입찰 차단",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-BID-005-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 검증 대상 입찰 요청",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid.test.token"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_a_id}}\",\n  \"bid_amount\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 거부 및 오류 원인 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([401]);",
+                  "  const error = pm.response.json();",
+                  "  pm.expect(error).to.be.an(\"object\");",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(10000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(0);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-BID-005 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"03 검증 대상 입찰 요청\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-BID-006 다른 사용자 ID 위조 차단",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-BID-006-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 검증 대상 입찰 요청",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_bidder_a_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_b_id}}\",\n  \"bid_amount\": 15000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 거부 및 오류 원인 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([403]);",
+                  "  const error = pm.response.json();",
+                  "  pm.expect(error).to.be.an(\"object\");",
+                  "  pm.expect(error.code).to.be.oneOf([\"42501\"]);",
+                  "  pm.expect(error.message).to.match(/row.level security|permission/i);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(10000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(0);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-BID-006 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"03 검증 대상 입찰 요청\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-BID-007 금액 누락 입찰 거부",
+      "description": "사전 조건: 00 준비 완료, 서로 다른 계정 3개. 시작가 10000원의 신규 상품 사용. 폴더 내 전체 요청을 순서대로 실행. 부분 실행/건너뜀은 TC PASS로 집계하지 않음. 종료 상태 케이스는 과거 시각으로 변경하며 실제 경계 시각 대기 테스트가 아님.",
+      "item": [
+        {
+          "name": "01 테스트 상품 생성",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?select=id,title,seller_id,current_price,end_time",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{qa_title}}\",\n  \"description\": \"Postman 핵심 입찰 테스트 전용 상품\",\n  \"location\": \"QA 테스트\",\n  \"category\": \"기타\",\n  \"starting_price\": 10000,\n  \"current_price\": 10000,\n  \"image_url\": \"https://example.com/qa-test.jpg\",\n  \"end_time\": \"{{qa_end_time}}\",\n  \"seller_id\": \"{{qa_seller_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.variables.set(\"qa_case_failed\", false);",
+                  "pm.variables.set(\"qa_completed\", \"{}\");",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const ids = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_id\"));",
+                  "const tokens = [\"seller\", \"bidder_a\", \"bidder_b\"].map(r => pm.variables.get(\"qa_\" + r + \"_token\"));",
+                  "if (!ids.every(Boolean) || !tokens.every(Boolean) || new Set(ids).size !== 3) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 계정 준비 실패\", function () { throw new Error(\"Run 00 준비 first with 3 distinct accounts.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}",
+                  "pm.variables.set(\"qa_title\", \"QA-POSTMAN-TC-BID-007-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "pm.variables.set(\"qa_end_time\", new Date(Date.now() + 24 * 3600 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 생성 및 소유자 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(201);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  const product = data[0];",
+                  "  pm.expect(product.id).to.match(/^[0-9a-f-]{36}$/i);",
+                  "  pm.expect(product.title).to.equal(pm.variables.get(\"qa_title\"));",
+                  "  pm.expect(product.seller_id).to.equal(pm.variables.get(\"qa_seller_id\"));",
+                  "  pm.variables.set(\"qa_product_id\", product.id);",
+                  "  pm.variables.set(\"qa_product_created\", true);",
+                  "  pm.expect(product.current_price).to.equal(10000);",
+                  "  pm.expect(Date.parse(product.end_time)).to.be.above(Date.now());",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 검증 대상 입찰 요청",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_bidder_a_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Prefer",
+                "value": "return=representation"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?select=id,product_id,user_id,bid_amount",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": \"{{qa_product_id}}\",\n  \"user_id\": \"{{qa_bidder_a_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 거부 및 오류 원인 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([400]);",
+                  "  const error = pm.response.json();",
+                  "  pm.expect(error).to.be.an(\"object\");",
+                  "  pm.expect(error.code).to.be.oneOf([\"23502\"]);",
+                  "  pm.expect(error.message).to.match(/bid_amount/i);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 상품 재조회 - 현재가 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id,title,current_price",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"대상 상품 현재가 일치\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(1);",
+                  "  pm.expect(data[0].id).to.equal(pm.variables.get(\"qa_product_id\"));",
+                  "  pm.expect(data[0].current_price).to.equal(10000);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 입찰 내역 재조회 - 생성 여부 검증",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id,product_id,user_id,bid_amount&order=bid_amount.desc,created_at.asc",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"입찰 내역 개수 및 저장 내용 확인\", function () {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  const data = rows(); pm.expect(data).to.have.lengthOf(0);",
+                  "});",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 생성 상품 정리",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{qa_seller_token}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&seller_id=eq.{{qa_seller_id}}&title=eq.{{qa_title}}",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"상품 삭제 요청 성공\", function () { pm.expect(pm.response.code).to.be.oneOf([200,204]); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 삭제 결과 확인",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/products?id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"생성 상품 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 입찰 내역 정리 및 TC 종합 판정",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "apikey",
+                "value": "{{anon_key}}"
+              }
+            ],
+            "url": "{{base_url}}/rest/v1/bids?product_id=eq.{{qa_product_id}}&select=id",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"qa_product_created\") || !pm.variables.get(\"qa_product_id\")) {",
+                  "  pm.variables.set(\"qa_case_failed\", true);",
+                  "  pm.test(\"BLOCKED: 상품 준비 실패 - TC 통과로 집계하지 않음\", function () { throw new Error(\"Run collection from 00 준비. Check creation response.\"); });",
+                  "  pm.execution.skipRequest();",
+                  "}"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "function check(name, fn) {",
+                  "  pm.test(name, function () {",
+                  "    try { fn(); }",
+                  "    catch (error) { pm.variables.set(\"qa_case_failed\", true); throw error; }",
+                  "  });",
+                  "}",
+                  "function rows() { const data = pm.response.json(); pm.expect(data).to.be.an(\"array\"); return data; }",
+                  "check(\"관련 입찰 내역 삭제 확인\", function () { pm.expect(pm.response.code).to.equal(200); pm.expect(rows()).to.have.lengthOf(0); });",
+                  "check(\"TC-BID-007 종합 판정: 준비·검증·정리 모두 성공\", function () {",
+                  "  const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "  const required = [\"01 테스트 상품 생성\", \"03 검증 대상 입찰 요청\", \"04 상품 재조회 - 현재가 검증\", \"05 입찰 내역 재조회 - 생성 여부 검증\", \"06 생성 상품 정리\", \"07 삭제 결과 확인\"];",
+                  "  pm.expect(required.every(name => completed[name] === true), \"실행하지 않은 필수 요청이 있음\").to.equal(true);",
+                  "  pm.expect(pm.variables.get(\"qa_case_failed\"), \"앞 단계에서 실패한 검증이 있음\").to.equal(false);",
+                  "});",
+                  "pm.variables.unset(\"qa_product_created\");",
+                  "pm.variables.unset(\"qa_product_id\");",
+                  "const completed = JSON.parse(pm.variables.get(\"qa_completed\") || \"{}\");",
+                  "completed[pm.info.requestName] = true;",
+                  "pm.variables.set(\"qa_completed\", JSON.stringify(completed));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

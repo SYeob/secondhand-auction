@@ -17,6 +17,12 @@ GitHub Actions의 Ubuntu·Chrome Headless 환경에서 전체 회귀 테스트�
 
 ## 핵심 구성
 
+### Postman으로 직접 확인하기
+
+[핵심 입찰 Collection](postman/pabi-core-bidding.postman_collection.json)을 Import한 뒤 [설정·실행 안내](postman/README.md)를 따라 실행할 수 있습니다. 기존 TC와 연결한 8개 TC / 9개 입력 조건을 제공하며 준비·입찰·상태 재조회·정리·종합 판정을 포함합니다. **새 Collection의 실제 서버 결과는 미실행**이며 위 Python 회귀 결과와 별개입니다.
+
+### Python 자동화 구성
+
 - Python 3.11, Selenium 4.46, pytest
 - requests 기반 Supabase Auth/PostgREST/RPC 검증
 - pytest-html 및 실패 스크린샷
